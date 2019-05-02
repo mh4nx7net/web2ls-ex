@@ -1,61 +1,80 @@
-// BEFORE RUNNING:
-// ---------------
-// 1. If not already done, enable the Google Sheets API
-//    and check the quota for your project at
-//    https://console.developers.google.com/apis/api/sheets
-// 2. Install the Node.js client library by running
-//    `npm install googleapis --save`
+var express = require('express');
+var app = express();
+var useragent = require('express-useragent');
+const port = process.env.PORT || 5000;
 
-const {google} = require('googleapis');
-var sheets = google.sheets('v4');
+/***************************************/
+/*******         Router          *******/
+/***************************************/
 
-authorize(function(authClient) {
-  var request = {
-    // The ID of the spreadsheet to retrieve data from.
-    spreadsheetId: '1Wjarf4FtBgMnJ4j7ssQUTbnm3LQzaUEm2NjNbVhYbzQ',  // TODO: Update placeholder value.
-
-    // The A1 notation of the values to retrieve.
-    range: 'Sheet1',  // TODO: Update placeholder value.
-
-    // How values should be represented in the output.
-    // The default render option is ValueRenderOption.FORMATTED_VALUE.
-    valueRenderOption: '',  // TODO: Update placeholder value.
-
-    // How dates, times, and durations should be represented in the output.
-    // This is ignored if value_render_option is
-    // FORMATTED_VALUE.
-    // The default dateTime render option is [DateTimeRenderOption.SERIAL_NUMBER].
-    dateTimeRenderOption: '',  // TODO: Update placeholder value.
-
-    auth: authClient,
-  };
-
-  sheets.spreadsheets.values.get(request, function(err, response) {
-    if (err) {
-      console.error(err);
-      return;
+/*
+ * http://<domain>
+ * Desciption: Main page
+ */
+app.get('/', (req, res) => {
+    var data = {
+        status: "success",
+        message: "coba gan"
     }
+    res.status(200).json(data);
+})
 
-    // TODO: Change code below to process the `response` object:
-    console.log(JSON.stringify(response, null, 2));
-  });
-});
+/*
+ * http://<domain>/:phonenum
+ * Desciption: Redirect url to respective whatsapp api interface without message text
+ */
+app.get('/:phonenum', (req, res) => {
+    var source = req.header('user-agent');
+    var ua = useragent.parse(source);
 
-function authorize(callback) {
-  // TODO: Change placeholder below to generate authentication credentials. See
-  // https://developers.google.com/sheets/quickstart/nodejs#step_3_set_up_the_sample
-  //
-  // Authorize using one of the following scopes:
-  //   'https://www.googleapis.com/auth/drive'
-  //   'https://www.googleapis.com/auth/drive.file'
-  //   'https://www.googleapis.com/auth/drive.readonly'
-  //   'https://www.googleapis.com/auth/spreadsheets'
-  //   'https://www.googleapis.com/auth/spreadsheets.readonly'
-  var authClient = 'https://www.googleapis.com/auth/spreadsheets.readonly';
+    if (ua.isDesktop) {
+        res.status(308).redirect(`https://web.whatsapp.com/send?phone=+${req.params.phonenum}`);
+    } else if (ua.isMobile) {
+        res.status(308).redirect(`whatsapp://send?phone=+${req.params.phonenum}`);
+    } else {
+        res.status(400).json({status: "error"});
+    }
+})
 
-  if (authClient == null) {
-    console.log('authentication failed');
-    return;
-  }
-  callback(authClient);
-}
+/*
+ * http://<domain>/:phonenum/:message
+ * Desciption: Redirect url to respective whatsapp api interface with message text
+ */
+app.get('/:phonenum/:message', (req, res) => {
+    var source = req.header('user-agent');
+    var ua = useragent.parse(source);
+
+    if (ua.isDesktop) {
+        res.status(308).redirect(`https://web.whatsapp.com/send?phone=+${req.params.phonenum}&text=${req.params.message}`);
+    } else if (ua.isMobile) {
+        res.status(308).redirect(`whatsapp://send?phone=+${req.params.phonenum}&text=${req.params.message}`);
+    } else {
+        res.status(400).json({status: "error"});
+    }
+})
+
+/*
+ * http://<domain>/whatsapp
+ * Desciption: Redirect url to respective whatsapp api interface using predefined phone number
+ */
+app.get('/whatsapp', (req, res) => {
+    var source = req.header('user-agent');
+    var ua = useragent.parse(source);
+    var phonenum = '0123456789';
+    
+    if (ua.isDesktop) {
+        res.status(308).redirect(`https://web.whatsapp.com/send?phone=+${phonenum}`);
+    } else if (ua.isMobile) {
+        res.status(308).redirect(`whatsapp://send?phone=+${phonenum}`);
+    } else {
+        res.status(400).json({status: "error"});
+    }
+})
+
+// Start server at <port>
+app.listen(port, (err) => {
+    console.log(`Available at http://localhost:${port}`);
+    if (err) {
+        console.log(err);
+    }
+})
